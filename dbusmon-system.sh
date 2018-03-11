@@ -35,14 +35,19 @@ dbus-monitor --system |
             then
                 case "${BASH_REMATCH[1]}" in
                     true)
-                        echo "  disconneccted"
+                        #echo "  disconneccted ($ICON_BATT)"
+                        notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power disconnected"
                         STATE_BATT=0
                     ;;
                     false)
-                        echo "  connected"
+                        #echo "  connected  ($ICON_BATT)"
+                        notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power connected"
                         STATE_BATT=0
                     ;;
                 esac
             fi
+        elif [[ $MESSAGE =~ ^.*?\"(battery-.*?)\"$ ]]
+        then
+            ICON_BATT="${BASH_REMATCH[1]}"
         fi
     done
