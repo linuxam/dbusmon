@@ -8,7 +8,6 @@ dbus-monitor --system |
     do
         if [[ $MESSAGE =~ ^.*\"LockedHint\"$ ]]
         then
-            echo "Desktop is"
             STATE_LOCK=1
         elif [[ $STATE_LOCK -eq 1 ]]
         then
@@ -16,18 +15,17 @@ dbus-monitor --system |
             then
                 case "${BASH_REMATCH[1]}" in
                     true)
-                        echo "  locked"
+                        echo "Desktop is locked"
                         STATE_LOCK=0
                     ;;
                     false)
-                        echo "  unlocked"
+                        echo "Desktop is unlocked"
                         STATE_LOCK=0
                     ;;
                 esac
             fi
         elif [[ "$MESSAGE" =~ ^.*?\"OnBattery\"$ ]]
         then
-            echo "Power is"
             STATE_BATT=1
         elif [[ $STATE_BATT -eq 1 ]]
         then
@@ -35,12 +33,12 @@ dbus-monitor --system |
             then
                 case "${BASH_REMATCH[1]}" in
                     true)
-                        #echo "  disconneccted ($ICON_BATT)"
+                        echo "Poer is disconneccted ($ICON_BATT)"
                         notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power disconnected"
                         STATE_BATT=0
                     ;;
                     false)
-                        #echo "  connected  ($ICON_BATT)"
+                        echo "Power is connected  ($ICON_BATT)"
                         notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power connected"
                         STATE_BATT=0
                     ;;
