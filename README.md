@@ -4,7 +4,7 @@ This script covers:
   * Desktop locked/unlocked (LockedHint=true/false)
   * Power connected/disconnected (OnBattery=true/false)
 
-### USAGE
+### Usage:
 I run it at logon (startup applications)
 
 ### Tested on:
