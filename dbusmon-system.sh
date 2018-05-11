@@ -14,7 +14,40 @@
 # https://github.com/user-resu/dbusmon                                        #
 #******************************************************************************
 
-sleep 10
+##### CONSTANTS #####
+BRIGHTNESS_BATT=25
+BRIGHTNESS_ONAC=95
+
+
+##### FUNCTIONS #####
+get_powerstate()
+{
+    STATE_PWR=$(cat /sys/class/power_supply/ADP1/online)
+}
+
+set_brightness()
+{
+    get_powerstate
+
+    case $STATE_PWR in
+    0)
+        BRIGHTNESS=$BRIGHTNESS_BATT
+    ;;
+    1)  BRIGHTNESS=$BRIGHTNESS_ONAC
+    ;;
+    *)
+        BRIGHTNESS=50
+    esac
+
+    gdbus call --session --dest org.gnome.SettingsDaemon.Power --object-path /org/gnome/SettingsDaemon/Power --method org.freedesktop.DBus.Properties.Set org.gnome.SettingsDaemon.Power.Screen Brightness "<int32 $BRIGHTNESS>"
+}
+
+##### MAIN #####
+# wait until starting execution (in seconds)
+sleep 1
+
+# set brightness according to initial power state (before changes)
+set_brightness
 
 STATE_LOCK=0
 STATE_BATT=0
@@ -56,6 +89,9 @@ dbus-monitor --system |
         # Catch power connection changes
         elif [[ "$MESSAGE" =~ ^.*?\"OnBattery\"$ ]]
         then
+            # commands to execute when power disconected go bellow...
+            set_brightness
+            # commands to execute when power disconected go abowe...
             # When detected, set $STATE_BATT to 1 (so we know we are looking for first line with "...boolean tru/false")
             STATE_BATT=1
         elif [[ $STATE_BATT -eq 1 ]]
@@ -66,19 +102,15 @@ dbus-monitor --system |
                 case "${BASH_REMATCH[1]}" in
                     true)
                         # System is on battery
-                        # commands to execute when power disconected go bellow...
                         # ... create desktop notification with appropriate icon
                         notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power disconnected"
-                        # commands to execute when power disconected go abowe...
                         # Reset $STATE_BATT bask to 0 after executing all commands
                         STATE_BATT=0
                     ;;
                     false)
                         # System is on external power
-                        # commands to execute when power connected go bellow...
                         # ... create desktop notification with appropriate icon ...
                         notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power connected"
-                        # commands to execute when power connected go abowe...
                         # Reset $STATE_BATT bask to 0 after executing all commands
                         STATE_BATT=0
                     ;;
