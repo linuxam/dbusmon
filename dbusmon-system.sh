@@ -23,6 +23,19 @@ BRIGHTNESS_ONAC=95
 get_powerstate()
 {
     STATE_PWR=$(cat /sys/class/power_supply/ADP1/online)
+
+    case $STATE_PWR in
+    0)
+        MESSAGE="Power disconnected"
+    ;;
+    1)  
+        MESSAGE="Power connected"
+    ;;
+    *)
+        MESSAGE="Power state unknown"
+    esac
+
+    notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "$MESSAGE"
 }
 
 set_brightness()
@@ -42,15 +55,15 @@ set_brightness()
     gdbus call --session --dest org.gnome.SettingsDaemon.Power --object-path /org/gnome/SettingsDaemon/Power --method org.freedesktop.DBus.Properties.Set org.gnome.SettingsDaemon.Power.Screen Brightness "<int32 $BRIGHTNESS>"
 }
 
+
 ##### MAIN #####
 # wait until starting execution (in seconds)
-sleep 1
+sleep 5
 
 # set brightness according to initial power state (before changes)
 set_brightness
 
 STATE_LOCK=0
-STATE_BATT=0
 
 dbus-monitor --system | 
     while read -r MESSAGE
@@ -92,30 +105,6 @@ dbus-monitor --system |
             # commands to execute when power disconected go bellow...
             set_brightness
             # commands to execute when power disconected go abowe...
-            # When detected, set $STATE_BATT to 1 (so we know we are looking for first line with "...boolean tru/false")
-            STATE_BATT=1
-        elif [[ $STATE_BATT -eq 1 ]]
-        then
-            # Check if system is on battery (only when $STATE_BATT equals 1)
-            if [[ $MESSAGE =~ ^.*?boolean[[:space:]](.*?)$ ]]
-            then
-                case "${BASH_REMATCH[1]}" in
-                    true)
-                        # System is on battery
-                        # ... create desktop notification with appropriate icon
-                        notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power disconnected"
-                        # Reset $STATE_BATT bask to 0 after executing all commands
-                        STATE_BATT=0
-                    ;;
-                    false)
-                        # System is on external power
-                        # ... create desktop notification with appropriate icon ...
-                        notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power connected"
-                        # Reset $STATE_BATT bask to 0 after executing all commands
-                        STATE_BATT=0
-                    ;;
-                esac
-            fi
         # get the current battery icon in use (e.g. to be used in desktop notifications)
         elif [[ $MESSAGE =~ ^.*?\"(battery-.*?)\"$ ]]
         then
