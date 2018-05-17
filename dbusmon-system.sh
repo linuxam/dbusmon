@@ -40,8 +40,6 @@ get_powerstate()
 
 set_brightness()
 {
-    get_powerstate
-
     case $STATE_PWR in
     0)
         BRIGHTNESS=$BRIGHTNESS_BATT
@@ -61,6 +59,7 @@ set_brightness()
 sleep 5
 
 # set brightness according to initial power state (before changes)
+get_powerstate
 set_brightness
 
 STATE_LOCK=0
@@ -102,9 +101,38 @@ dbus-monitor --system |
         # Catch power connection changes
         elif [[ "$MESSAGE" =~ ^.*?\"OnBattery\"$ ]]
         then
-            # commands to execute when power disconected go bellow...
-            set_brightness
-            # commands to execute when power disconected go abowe...
+            # When detected, set $STATE_BATT to 1 (so we know we are looking for first line with "...boolean tru/false")
+            STATE_BATT=1
+        elif [[ $STATE_BATT -eq 1 ]]
+        then
+            # Check if system is on battery (only when $STATE_BATT equals 1)
+            if [[ $MESSAGE =~ ^.*?boolean[[:space:]](.*?)$ ]]
+            then
+                case "${BASH_REMATCH[1]}" in
+                    true)
+                        # System is on battery
+                        # commands to execute when power disconected go bellow...
+                        # ... create desktop notification with appropriate icon
+                        STATE_PWR=0
+                        set_brightness
+                        notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power disconnected"
+                        # commands to execute when power disconected go abowe...
+                        # Reset $STATE_BATT bask to 0 after executing all commands
+                        STATE_BATT=0
+                    ;;
+                    false)
+                        # System is on external power
+                        # commands to execute when power connected go bellow...
+                        # ... create desktop notification with appropriate icon ...
+                        STATE_PWR=1
+                        set_brightness
+                        notify-send --urgency=normal --icon=$ICON_BATT --category=INFORMATION "Power connected"
+                        # commands to execute when power connected go abowe...
+                        # Reset $STATE_BATT bask to 0 after executing all commands
+                        STATE_BATT=0
+                    ;;
+                esac
+            fi
         # get the current battery icon in use (e.g. to be used in desktop notifications)
         elif [[ $MESSAGE =~ ^.*?\"(battery-.*?)\"$ ]]
         then
